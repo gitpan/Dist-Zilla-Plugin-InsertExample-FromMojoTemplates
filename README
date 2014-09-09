@@ -1,0 +1,85 @@
+NAME
+    Dist::Zilla::Plugin::InsertExample::FromMojoTemplate - Creates POD
+    examples from custom Mojolicious templates.
+
+SYNOPSIS
+      ; In dist.ini
+      [InsertExample::FromMojoTemplate]
+      directory = examples/source
+      filepattern = ^\w+-\d+\.mojo$
+
+DESCRIPTION
+    Dist::Zilla::Plugin::InsertExample::FromMojoTemplate inserts examples
+    from MojoX::CustomTemplateFileParser type files into POD. Together with
+    Dist::Zilla::Plugin::Test::CreateFromMojo this produces examples in POD
+    from the same source that creates the tests. The purpose is to help
+    develop tag helpers for Mojolicious.
+
+  Attributes
+    "directory"
+
+    Default: "examples/source"
+
+    Where DZP::IE::FMT should look for source files.
+
+    "filepattern"
+
+    Default: "^\w+-\d+\.mojo$"
+
+    Look for files that matches a certain pattern.
+
+  USAGE
+    Source files looks like this:
+
+       ==test example 1==
+        --t--
+            %= link_to 'The example 3' => ['http://www.perl.org/']
+        --t--
+        --e--
+            <a href="http://www.perl.org/">Perl</a>
+        --e--
+
+    This is a test block. One file can have many test blocks.
+
+    In your pod:
+
+        # EXAMPLE: filename.mojo:1, 3-30, !5, !22-26
+
+        # EXAMPLE: filename.mojo:all
+
+    "all"
+
+    Adds all examples in the source file. "all" can be used by itself or
+    combined with exclusion commands.
+
+    1
+
+    Adds example number 3. The test number is sequential. Looping tests
+    count as one. You can add a number as in the example to make it easier
+    to follow.
+
+    "3-30"
+
+    Add examples numbered 5 through 30.
+
+    "!5"
+
+    Excludes example 5 from the previous range.
+
+    "!22-26"
+
+    Excludes examples numbered "22-26" from the previous range. If an
+    example has been excluded it can't be included later. Exclusions are
+    final.
+
+AUTHOR
+    Erik Carlsson <info@code301.com>
+
+COPYRIGHT
+    Copyright 2014- Erik Carlsson
+
+LICENSE
+    This library is free software; you can redistribute it and/or modify it
+    under the same terms as Perl itself.
+
+SEE ALSO
