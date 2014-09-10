@@ -1,8 +1,21 @@
-Revision history for Dist-Zilla-Plugin-InsertExample-FromMojoTemplate
+Revision history for Dist-Zilla-Plugin-InsertExample-FromMojoTemplates
+
+0.02.00 2014-09-10T19:05:54Z CEST
+ [Documentation]
+ - Fix name typos
+
+ [Meta]
+ - Now requires MojoX::CustomTemplateFileParser 0.09
+
+ [New Features]
+ - Support for including all tests marked as 'example' in the source file.
+ - Two new attributes: make_examples (boolean) and example_directory
+   (string)
+ - These are used to create html files in the chosen folder
 
 0.01.01 2014-09-09T13:01:50Z CEST
  [Meta]
- - Fix wrong name
+ - Fix wrong dist name
 
 0.01.00 2014-09-08T23:07:10Z CEST
  - Initial release

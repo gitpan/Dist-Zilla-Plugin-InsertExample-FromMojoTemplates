@@ -1,5 +1,5 @@
 package Dist::Zilla::Plugin::InsertExample::FromMojoTemplates;
-$Dist::Zilla::Plugin::InsertExample::FromMojoTemplates::VERSION = '0.01.01';
+$Dist::Zilla::Plugin::InsertExample::FromMojoTemplates::VERSION = '0.02.00';
 use strict;
 use warnings;
 use 5.10.1;
@@ -8,7 +8,9 @@ use File::Find::Rule;
 use MojoX::CustomTemplateFileParser;
 use Moose;
 use Path::Tiny;
-with 'Dist::Zilla::Role::FileMunger';
+use Dist::Zilla::File::InMemory;
+
+with ('Dist::Zilla::Role::FileMunger', 'Dist::Zilla::Role::FileGatherer');
 with 'Dist::Zilla::Role::FileFinderUser' => {
     default_finders => [':InstallModules', ':ExecFiles'],
 };
@@ -22,6 +24,43 @@ has filepattern => (
     is => 'ro',
     default => sub { qr/\w+-\d+\.mojo/ },
 );
+has make_examples => (
+    is => 'ro',
+    isa => 'Bool',
+    default => sub { 1 },
+);
+
+has example_directory => (
+    is => 'ro',
+    isa => 'Str',
+    default => sub { 'examples' },
+);
+
+sub gather_files {
+    my $self = shift;
+    my $arg = shift;
+
+    return if !$self->make_examples;
+    my $html_template_path = (File::Find::Rule->file->name('template.html')->in($self->directory))[0];
+    my $html_template = path($html_template_path)->slurp;
+
+    my @paths = File::Find::Rule->file->name(qr/@{[ $self->filepattern ]}/)->in($self->directory);
+    foreach my $path (@paths) {
+        my $contents = MojoX::CustomTemplateFileParser->new(path => path($path)->absolute->canonpath, output => ['Html'])->to_html;
+        $contents = $html_template =~ s{\[EXAMPLES\]}{$contents}r;
+        my $filename = path($path)->basename(qr{\.[^.]+});
+
+        my $file = Dist::Zilla::File::InMemory->new(
+            name => ''.path($self->example_directory)->child("$filename.html"),
+            content => $contents,
+        );
+        $self->add_file($file);
+
+    }
+
+    return;
+}
+
 
 sub munge_files {
     my $self = shift;
@@ -54,10 +93,14 @@ sub munge_file {
             my @wanted = ();
             my @unwanted = ();
             my $all = 0;
+            my $want_all_examples = 0;
 
             CONFIG:
             foreach my $config (@configs) {
-                if($config eq 'all') {
+                if($config eq 'examples') {
+                    $want_all_examples = 1;
+                }
+                elsif($config eq 'all') {
                     $all = 1;
                 }
                 elsif($config =~ m{^ (!)? (\d+) (?:-(\d+))? }x) {
@@ -70,9 +113,9 @@ sub munge_file {
                 }
             }
 
-            my $parser = MojoX::CustomTemplateFileParser->new( path => path($self->directory)->child($filename)->absolute )->parse;
+            my $parser = MojoX::CustomTemplateFileParser->new( path => path($self->directory)->child($filename)->absolute->canonpath, output => ['Pod'] );
             my $testcount = $parser->test_count;
-            @wanted = (1..$testcount) if $all;
+            @wanted = (1..$testcount) if $all || $want_all_examples;
 
             my %unwanted;
             $unwanted{ $_ } = 1 for @unwanted;
@@ -80,7 +123,7 @@ sub munge_file {
 
             my $tomunge = '';
             foreach my $test (@wanted) {
-                $tomunge .= $parser->exemplify($test);
+                $tomunge .= $parser->to_pod($test, $want_all_examples);
             }
 
             my $success = $newcontent =~ s{$line}{$tomunge};
@@ -103,20 +146,20 @@ __END__
 
 =head1 NAME
 
-Dist::Zilla::Plugin::InsertExample::FromMojoTemplate - Creates POD examples from custom L<Mojolicious> templates.
+Dist::Zilla::Plugin::InsertExample::FromMojoTemplates - Creates POD examples from custom L<Mojolicious> templates.
 
 =for html <p><a style="float: left;" href="https://travis-ci.org/Csson/p5-Dist-Zilla-Plugin-InsertExample-FromMojoTemplates"><img src="https://travis-ci.org/Csson/p5-Dist-Zilla-Plugin-InsertExample-FromMojoTemplates.svg?branch=master">&nbsp;</a>
 
 =head1 SYNOPSIS
 
   ; In dist.ini
-  [InsertExample::FromMojoTemplate]
+  [InsertExample::FromMojoTemplates]
   directory = examples/source
   filepattern = ^\w+-\d+\.mojo$
 
 =head1 DESCRIPTION
 
-Dist::Zilla::Plugin::InsertExample::FromMojoTemplate inserts examples from L<MojoX::CustomTemplateFileParser> type files into POD.
+Dist::Zilla::Plugin::InsertExample::FromMojoTemplates inserts examples from L<MojoX::CustomTemplateFileParser> type files into POD.
 Together with L<Dist::Zilla::Plugin::Test::CreateFromMojo> this produces examples in POD from the same source that creates the tests.
 The purpose is to help develop tag helpers for L<Mojolicious>.
 
@@ -133,6 +176,18 @@ B<C<filepattern>>
 Default: C<^\w+-\d+\.mojo$>
 
 Look for files that matches a certain pattern.
+
+B<C<make_examples>>
+
+Default: C<1>
+
+If true, will create html files in the chosen directory.
+
+B<C<example_directory>>
+
+Default: C<examples>
+
+The directory for html files.
 
 =head2 USAGE
 
@@ -154,6 +209,8 @@ In your pod:
 
     # EXAMPLE: filename.mojo:all
 
+    # EXAMPLE: filename.mojo:examples
+
 B<C<all>>
 
 Adds all examples in the source file. C<all> can be used by itself or combined with exclusion commands.
@@ -173,6 +230,10 @@ Excludes example C<5> from the previous range.
 B<C<!22-26>>
 
 Excludes examples numbered C<22-26> from the previous range. If an example has been excluded it can't be included later. Exclusions are final.
+
+B<C<examples>>
+
+Includes all tests marked C<==test example==> in the source file. Exclusion works as with C<all>.
 
 
 =head1 AUTHOR
