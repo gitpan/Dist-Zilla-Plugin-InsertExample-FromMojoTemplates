@@ -1,5 +1,9 @@
 Revision history for Dist-Zilla-Plugin-InsertExample-FromMojoTemplates
 
+0.02.01 2014-09-18T21:22:43Z CEST
+ [Meta]
+ - Fix missing prereqs.
+
 0.02.00 2014-09-10T19:05:54Z CEST
  [Documentation]
  - Fix name typos

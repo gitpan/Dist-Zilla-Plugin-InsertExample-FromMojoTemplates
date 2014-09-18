@@ -1,5 +1,5 @@
 package Dist::Zilla::Plugin::InsertExample::FromMojoTemplates;
-$Dist::Zilla::Plugin::InsertExample::FromMojoTemplates::VERSION = '0.02.00';
+$Dist::Zilla::Plugin::InsertExample::FromMojoTemplates::VERSION = '0.02.01';
 use strict;
 use warnings;
 use 5.10.1;
